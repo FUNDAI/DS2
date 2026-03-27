@@ -17,15 +17,15 @@ class RawData {
   int graduates;
 };
 
-// 2-3樹節點中存放的資料單位 (Key 為畢業生數，ids 為擁有一樣畢業生數的流水號陣列)
-// 為了應付同值同節點
+// ==========================================
+// 任務一：2-3 樹相關類別
+// ==========================================
 class TwoThreeEntry {
  public:
   int key;
   std::vector<int> ids;
 };
 
-// 2-3樹的節點類別
 class TwoThreeNode {
  public:
   std::vector<TwoThreeEntry> entries;
@@ -36,7 +36,6 @@ class TwoThreeNode {
     parent = nullptr;
   }
 
-  // 判斷是否為樹葉節點
   bool isLeaf() {
     if (children.size() == 0) {
       return true;
@@ -45,7 +44,6 @@ class TwoThreeNode {
   }
 };
 
-// 任務一：建立 2-3 樹類別
 class TwoThreeTree {
  public:
   TwoThreeNode* root;
@@ -54,7 +52,6 @@ class TwoThreeTree {
     root = nullptr;
   }
 
-  // 清除整棵樹釋放記憶體
   void clear(TwoThreeNode* node) {
     if (node != nullptr) {
       for (int i = 0; i < node->children.size(); i++) {
@@ -69,7 +66,6 @@ class TwoThreeTree {
     root = nullptr;
   }
 
-  // 插入一筆 Entry 到 Node 內，並利用簡單排序維持由小到大
   void insertEntryIntoNode(TwoThreeNode* node, TwoThreeEntry newEntry) {
     node->entries.push_back(newEntry);
     for (int i = 0; i < node->entries.size(); i++) {
@@ -83,7 +79,6 @@ class TwoThreeTree {
     }
   }
 
-  // 當節點內有3筆 Entry 時，進行節點分裂 (Split)
   void splitNode(TwoThreeNode* node) {
     TwoThreeNode* rightNode = new TwoThreeNode();
     TwoThreeEntry middleEntry = node->entries[1];
@@ -124,7 +119,6 @@ class TwoThreeTree {
         }
       }
 
-      // 將 rightNode 插入 parent 的 children 陣列的適當位置
       parent->children.push_back(nullptr);
       for (int i = parent->children.size() - 1; i > childIndex + 1; i--) {
         parent->children[i] = parent->children[i - 1];
@@ -132,14 +126,12 @@ class TwoThreeTree {
       parent->children[childIndex + 1] = rightNode;
       rightNode->parent = parent;
 
-      // 若父節點也滿了，繼續往上分裂
       if (parent->entries.size() == 3) {
         splitNode(parent);
       }
     }
   }
 
-  // 將一筆新資料插入 2-3 樹中
   void insert(int key, int id) {
     if (root == nullptr) {
       root = new TwoThreeNode();
@@ -153,7 +145,6 @@ class TwoThreeTree {
     TwoThreeNode* curr = root;
     while (true) {
       bool found = false;
-      // 檢查該畢業生數是否已經存在於此節點
       for (int i = 0; i < curr->entries.size(); i++) {
         if (curr->entries[i].key == key) {
           curr->entries[i].ids.push_back(id);
@@ -163,13 +154,12 @@ class TwoThreeTree {
       }
 
       if (found == true) {
-        return; // 若找到相同畢業生數，加入 id 後直接結束
+        return; 
       }
 
       if (curr->isLeaf() == true) {
-        break; // 已經走到樹葉，準備插入
+        break; 
       } else {
-        // 決定要往哪個子節點走
         int childIndex = 0;
         for (int i = 0; i < curr->entries.size(); i++) {
           if (key < curr->entries[i].key) {
@@ -187,13 +177,11 @@ class TwoThreeTree {
 
     insertEntryIntoNode(curr, newEntry);
 
-    // 如果節點內的 Entry 達到 3 筆，觸發分裂
     if (curr->entries.size() == 3) {
       splitNode(curr);
     }
   }
 
-  // 計算樹高 (從樹根一路往左子節點走到樹葉)
   int getHeight() {
     if (root == nullptr) {
       return 0;
@@ -207,7 +195,6 @@ class TwoThreeTree {
     return height;
   }
 
-  // 計算總節點數 (遞迴尋訪)
   int countNodes(TwoThreeNode* node) {
     if (node == nullptr) {
       return 0;
@@ -219,12 +206,11 @@ class TwoThreeTree {
     return count;
   }
 
-  // 輸出任務要求之結果
   void printRootInfo(std::vector<RawData>& dataList) {
     int height = getHeight();
     int nodes = countNodes(root);
-    std::cout << "Tree height: " << height << "\n";
-    std::cout << "Number of nodes: " << nodes << "\n";
+    std::cout << "Tree height = " << height << "\n";
+    std::cout << "Number of nodes = " << nodes << "\n";
 
     if (root != nullptr) {
       int count = 1;
@@ -232,7 +218,6 @@ class TwoThreeTree {
         for (int j = 0; j < root->entries[i].ids.size(); j++) {
           int targetId = root->entries[i].ids[j];
           RawData targetData;
-          // 從原始資料陣列找回該筆資料的完整資訊
           for (int k = 0; k < dataList.size(); k++) {
             if (dataList[k].id == targetId) {
               targetData = dataList[k];
@@ -254,17 +239,66 @@ class TwoThreeTree {
   }
 };
 
-// 任務二預留：建立 AVL 樹類別
+// ==========================================
+// 任務二：AVL 樹相關類別 (空間預留)
+// ==========================================
+// 依據講義，AVL 樹的 Key 是「學校名稱 (字串)」，同名稱的也要放一起
+class AVLEntry {
+ public:
+  std::string key; // 學校名稱
+  std::vector<int> ids;
+};
+
+class AVLNode {
+ public:
+  AVLEntry entry;
+  AVLNode* left;
+  AVLNode* right;
+  int height; // AVL 樹需要紀錄高度來計算平衡因子
+
+  AVLNode() {
+    left = nullptr;
+    right = nullptr;
+    height = 1;
+  }
+};
+
 class AVLTree {
  public:
+  AVLNode* root;
+
   AVLTree() {
-    // 為了符合規範 (2)：「必須要分成2-3樹和AVL樹兩個類別」
+    root = nullptr;
+  }
+
+  void clear(AVLNode* node) {
+    if (node != nullptr) {
+      clear(node->left);
+      clear(node->right);
+      delete node;
+    }
+  }
+
+  void clearTree() {
+    clear(root);
+    root = nullptr;
+  }
+
+  // 預留插入方法 (傳入學校名稱與序號)
+  void insert(std::string key, int id) {
+    // TODO: 這裡之後要實作 AVL Tree 的插入與平衡旋轉 (LL, RR, LR, RL)
+  }
+
+  // 預留印出方法
+  void printRootInfo(std::vector<RawData>& dataList) {
+    // TODO: 計算樹高、節點數，並印出樹根內的資料
+    std::cout << "<AVL Tree preview - Function not implemented yet>\n";
   }
 };
 
 int main() {
   TwoThreeTree tree23;
-  std::string command;
+  AVLTree avlTree; // 實例化 AVL Tree
   std::vector<RawData> dataList;
 
   while (true) {
@@ -276,17 +310,23 @@ int main() {
     std::cout << "**********************************\n";
     std::cout << "Input a choice(0, 1, 2): ";
 
-    // 修正：使用 !std::getline 進行安全讀取並判斷
-    if (!std::getline(std::cin, command)) {
-      break;
-    }
-
+    std::string command;
     std::string cleanedCommand = "";
-    for (int i = 0; i < command.length(); i++) {
-      if (command[i] != ' ') {
-        if (command[i] != '\r') {
-          if (command[i] != '\n') {
-            cleanedCommand = cleanedCommand + command[i];
+    
+    // 防呆：持續讀取直到有非空白的內容
+    while (cleanedCommand.empty()) {
+      if (!std::getline(std::cin, command)) {
+        tree23.clearTree();
+        avlTree.clearTree();
+        return 0;
+      }
+      cleanedCommand = "";
+      for (int i = 0; i < command.length(); i++) {
+        if (command[i] != ' ') {
+          if (command[i] != '\r') {
+            if (command[i] != '\n') {
+              cleanedCommand = cleanedCommand + command[i];
+            }
           }
         }
       }
@@ -294,101 +334,135 @@ int main() {
 
     if (cleanedCommand == "0") {
       break;
-    } else if (cleanedCommand == "1") {
-      std::cout << "Input a file number: ";
-      std::string fileNum;
-      if (!std::getline(std::cin, fileNum)) {
-        break;
-      }
-
+    } else if (cleanedCommand == "1" || cleanedCommand == "2") {
+      // 合併選項 1 與選項 2 的檔案讀取邏輯
       std::string cleanedFileNum = "";
-      for (int i = 0; i < fileNum.length(); i++) {
-        if (fileNum[i] != ' ') {
-          if (fileNum[i] != '\r') {
-            if (fileNum[i] != '\n') {
-              cleanedFileNum = cleanedFileNum + fileNum[i];
-            }
-          }
-        }
-      }
-
-      std::string filename = "input" + cleanedFileNum + ".txt";
-      std::ifstream infile(filename.c_str());
-
-      if (infile.is_open() == false) {
-        std::cout << "### " << filename << " does not exist! ###\n";
-      } else {
-        tree23.clearTree();
-        dataList.clear();
-
-        std::string line;
-        // 修正：使用 !std::getline 來略過前三行標題
-        for (int i = 0; i < 3; i++) {
-          if (!std::getline(infile, line)) {
-            break;
-          }
-        }
-
-        int currentId = 1;
-        while (std::getline(infile, line)) {
-          if (line.empty() == true) {
-            continue;
-          }
-          if (line[0] == '\r') {
-            continue;
+      
+      while (true) {
+        std::cout << "\nInput a file number ([0] Quit): ";
+        cleanedFileNum = "";
+        
+        while (cleanedFileNum.empty()) {
+          std::string fileNum;
+          if (!std::getline(std::cin, fileNum)) {
+            tree23.clearTree();
+            avlTree.clearTree();
+            return 0;
           }
 
-          std::stringstream ss(line);
-          std::string token;
-          std::vector<std::string> tokens;
-
-          while (std::getline(ss, token, '\t')) {
-            tokens.push_back(token);
-          }
-
-          if (tokens.size() >= 11) {
-            RawData data;
-            data.id = currentId;
-            data.schoolName = tokens[1];
-            data.deptName = tokens[3];
-            data.dayNight = tokens[4];
-            data.level = tokens[5];
-            data.students = tokens[6];
-
-            // 處理畢業生人數，過濾掉逗號等非數字字元 (例如 1,000 -> 1000)
-            std::string gradStr = tokens[8];
-            std::string cleanGrad = "";
-            for (int i = 0; i < gradStr.length(); i++) {
-              if (gradStr[i] >= '0') {
-                if (gradStr[i] <= '9') {
-                  cleanGrad = cleanGrad + gradStr[i];
+          cleanedFileNum = "";
+          for (int i = 0; i < fileNum.length(); i++) {
+            if (fileNum[i] != ' ') {
+              if (fileNum[i] != '\r') {
+                if (fileNum[i] != '\n') {
+                  cleanedFileNum = cleanedFileNum + fileNum[i];
                 }
               }
             }
-
-            int graduates = 0;
-            if (cleanGrad != "") {
-              std::stringstream gradSS(cleanGrad);
-              gradSS >> graduates;
-            }
-            data.graduates = graduates;
-
-            dataList.push_back(data);
-            tree23.insert(data.graduates, data.id);
-            currentId = currentId + 1;
           }
         }
-        infile.close();
 
-        // 列印輸出結果
-        tree23.printRootInfo(dataList);
+        if (cleanedFileNum == "0") {
+          std::cout << "\n";
+          break; // 回主選單
+        }
+
+        std::string filename = "input" + cleanedFileNum + ".txt";
+        std::ifstream infile(filename.c_str());
+
+        if (infile.is_open() == false) {
+          std::cout << "\n### " << filename << " does not exist! ###\n";
+          continue; 
+        } else {
+          // 檔案開啟成功，清空指定的樹與資料陣列
+          if (cleanedCommand == "1") {
+            tree23.clearTree();
+          } else if (cleanedCommand == "2") {
+            avlTree.clearTree();
+          }
+          dataList.clear();
+
+          std::string line;
+          for (int i = 0; i < 3; i++) {
+            if (!std::getline(infile, line)) {
+              break;
+            }
+          }
+
+          int currentId = 1;
+          while (std::getline(infile, line)) {
+            if (line.empty() == true) {
+              continue;
+            }
+            if (line[0] == '\r') {
+              continue;
+            }
+
+            std::stringstream ss(line);
+            std::string token;
+            std::vector<std::string> tokens;
+
+            while (std::getline(ss, token, '\t')) {
+              tokens.push_back(token);
+            }
+
+            if (tokens.size() >= 11) {
+              RawData data;
+              data.id = currentId;
+              data.schoolName = tokens[1];
+              data.deptName = tokens[3];
+              data.dayNight = tokens[4];
+              data.level = tokens[5];
+              data.students = tokens[6];
+
+              std::string gradStr = tokens[8];
+              std::string cleanGrad = "";
+              for (int i = 0; i < gradStr.length(); i++) {
+                if (gradStr[i] >= '0') {
+                  if (gradStr[i] <= '9') {
+                    cleanGrad = cleanGrad + gradStr[i];
+                  }
+                }
+              }
+
+              int graduates = 0;
+              if (cleanGrad != "") {
+                std::stringstream gradSS(cleanGrad);
+                gradSS >> graduates;
+              }
+              data.graduates = graduates;
+
+              dataList.push_back(data);
+              
+              // 根據指令，將資料送到對應的樹結構中
+              if (cleanedCommand == "1") {
+                tree23.insert(data.graduates, data.id);
+              } else if (cleanedCommand == "2") {
+                avlTree.insert(data.schoolName, data.id);
+              }
+              
+              currentId = currentId + 1;
+            }
+          }
+          infile.close();
+
+          // 根據指令印出對應的結果
+          if (cleanedCommand == "1") {
+            tree23.printRootInfo(dataList);
+          } else if (cleanedCommand == "2") {
+            avlTree.printRootInfo(dataList);
+          }
+          std::cout << "\n";
+          
+          break; // 處理完畢跳出迴圈
+        }
       }
     } else {
-      std::cout << "Invalid command!\n";
+      std::cout << "\nCommand does not exist!\n\n";
     }
   }
 
-  // 程式結束前清空記憶體
   tree23.clearTree();
+  avlTree.clearTree();
   return 0;
 }
