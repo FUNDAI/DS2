@@ -1,9 +1,11 @@
-// 11327158 謝亞諺
+// 11327158 謝亞諺 11327134 曾苡綾
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <string>
+
+using namespace std;
 
 // 用來儲存讀入的每一筆完整原始資料
 class RawData {
@@ -243,64 +245,171 @@ class TwoThreeTree {
 // 任務二：AVL 樹相關類別 (空間預留)
 // ==========================================
 // 依據講義，AVL 樹的 Key 是「學校名稱 (字串)」，同名稱的也要放一起
-class AVLEntry {
- public:
-  std::string key; // 學校名稱
-  std::vector<int> ids;
+
+
+
+
+struct Node {
+    Node *right;
+    Node *left;
+    int height;
+    string name;
+    vector<int> ids;  // 存同一個學校的
+    Node(string n, int idx) {
+        name = n;
+        left = NULL;
+        right = NULL;
+        height = 1;
+        ids.push_back(idx);
+    } 
 };
 
-class AVLNode {
- public:
-  AVLEntry entry;
-  AVLNode* left;
-  AVLNode* right;
-  int height; // AVL 樹需要紀錄高度來計算平衡因子
 
-  AVLNode() {
-    left = nullptr;
-    right = nullptr;
-    height = 1;
+class AVLtree {
+ private:
+  Node* root;
+  int nodecount = 0;
+  Node* Insert(Node *node, string name, int idx) {
+    if (node == NULL) {
+        nodecount++;
+        Node *newnode = new Node(name, idx);
+        return newnode;
+    } 
+    if (name < node->name) {  // 找到正確位置並插入
+        node->left = Insert(node->left, name, idx);
+    } else if (name > node->name) {
+        node->right = Insert(node->right, name, idx);
+    } else {
+        node->ids.push_back(idx);
+        return node;
+    }
+
+    node->height = 1 + max(Getheight(node->left), Getheight(node->right));
+    int bf = Getbf(node); // 當前節點的平衡係數
+
+    if (bf > 1) {  // 左邊較重
+        if (Getbf(node->left) > 0) {
+            return LL(node);
+        } else {
+            return LR(node);
+        }
+
+    } else if (bf < -1) { // 右邊較重
+        if (Getbf(node->right) < 0) {
+            return RR(node);
+        } else {
+            return RL(node);
+        }
+    } 
+    return node;
   }
-};
 
-class AVLTree {
  public:
-  AVLNode* root;
-
-  AVLTree() {
-    root = nullptr;
+  AVLtree() {
+    root = NULL;
+    nodecount = 0;
   }
 
-  void clear(AVLNode* node) {
-    if (node != nullptr) {
-      clear(node->left);
-      clear(node->right);
-      delete node;
+  void Insert(string name, int idx) {
+    root = Insert(root, name, idx); 
+    // 因為root是private的，為了讓main不能接觸到root，所以private裡面還有一個insert(因為insert一定要傳進root才能做)
+  }
+
+  int max(int left, int right) {
+
+    if (left > right) {
+        return left;
+    }
+    return right;
+  }
+
+  int Getheight(Node* node) {
+    if (node == NULL) {
+        return 0;
+    } else {
+      return node->height;
     }
   }
 
-  void clearTree() {
+  int Getbf(Node* node) { // get平衡係數
+    return Getheight(node->left) - Getheight(node->right);
+  }
+
+  Node* LL(Node* x) {
+    Node* y = x->left;
+    x->left = y->right;
+    y->right = x;
+    x->height = max(Getheight(x->left), Getheight(x->right)) + 1;
+    y->height = max(Getheight(y->left), Getheight(y->right)) + 1;
+    return y;
+  }
+
+  Node* RR(Node* x) {
+    Node* y = x->right;
+    x->right = y->left;
+    y->left = x;
+    x->height = max(Getheight(x->left), Getheight(x->right)) + 1;
+    y->height = max(Getheight(y->left), Getheight(y->right)) + 1;
+    return y;
+  }
+
+  Node* RL(Node* x) {
+    x->right = LL(x->right);
+    Node* y = RR(x);
+    return y;
+  }
+
+  Node* LR(Node* x) {
+    x->left = RR(x->left);
+    Node* y = LL(x);
+    return y;
+  }
+
+  void ClearAVL() {
     clear(root);
-    root = nullptr;
+    root = nullptr; // 不要讓root還指向已經被刪掉的節點
+    nodecount = 0;
   }
 
-  // 預留插入方法 (傳入學校名稱與序號)
-  void insert(std::string key, int id) {
-    // TODO: 這裡之後要實作 AVL Tree 的插入與平衡旋轉 (LL, RR, LR, RL)
+  void clear(Node* node) {  // 一直遞迴清理
+    if (node != nullptr) {
+        clear(node->left);
+        clear(node->right);
+        delete node;
+    }
   }
 
-  // 預留印出方法
   void printRootInfo(std::vector<RawData>& dataList) {
-    // TODO: 計算樹高、節點數，並印出樹根內的資料
-    std::cout << "<AVL Tree preview - Function not implemented yet>\n";
-  }
+        if (root == nullptr) {
+            std::cout << "Tree is empty.\n";
+            return;
+        }
+        std::cout << "Tree height = " << Getheight(root) << "\n";
+        std::cout << "Number of nodes = " << nodecount << "\n";
+
+        for (int i = 0; i < root->ids.size(); i++) {
+            int targetId = root->ids[i];
+
+            RawData& d = dataList[targetId - 1]; // 編號從1開始所以要-1
+            // call by reference不用浪費空間
+            std::cout << (i + 1) << ": [" << d.id << "] "
+                      << d.schoolName << ", "
+                      << d.deptName << ", "
+                      << d.dayNight << ", "
+                      << d.level << ", "
+                      << d.students << ", "
+                      << d.graduates << "\n";
+        }
+    }
 };
+
 
 int main() {
   TwoThreeTree tree23;
-  AVLTree avlTree; // 實例化 AVL Tree
+  AVLtree avlTree; // 實例化 AVL Tree
   std::vector<RawData> dataList;
-
+  bool ismission1done = false; // 檢查是否執行過任務一
+  bool ismission2done = false; // 檢查是否執行過任務二
   while (true) {
     std::cout << "* Data Structures and Algorithms *\n";
     std::cout << "****** Balanced Search Tree ******\n";
@@ -317,7 +426,7 @@ int main() {
     while (cleanedCommand.empty()) {
       if (!std::getline(std::cin, command)) {
         tree23.clearTree();
-        avlTree.clearTree();
+        avlTree.ClearAVL();
         return 0;
       }
       cleanedCommand = "";
@@ -334,8 +443,9 @@ int main() {
 
     if (cleanedCommand == "0") {
       break;
-    } else if (cleanedCommand == "1" || cleanedCommand == "2") {
-      // 合併選項 1 與選項 2 的檔案讀取邏輯
+    } else if (cleanedCommand == "1") { 
+      ismission1done = false;
+      ismission2done = false;
       std::string cleanedFileNum = "";
       
       while (true) {
@@ -346,7 +456,7 @@ int main() {
           std::string fileNum;
           if (!std::getline(std::cin, fileNum)) {
             tree23.clearTree();
-            avlTree.clearTree();
+            avlTree.ClearAVL();
             return 0;
           }
 
@@ -378,7 +488,7 @@ int main() {
           if (cleanedCommand == "1") {
             tree23.clearTree();
           } else if (cleanedCommand == "2") {
-            avlTree.clearTree();
+            avlTree.ClearAVL();
           }
           dataList.clear();
 
@@ -437,32 +547,40 @@ int main() {
               // 根據指令，將資料送到對應的樹結構中
               if (cleanedCommand == "1") {
                 tree23.insert(data.graduates, data.id);
-              } else if (cleanedCommand == "2") {
-                avlTree.insert(data.schoolName, data.id);
-              }
-              
+              }     
               currentId = currentId + 1;
             }
           }
           infile.close();
 
           // 根據指令印出對應的結果
-          if (cleanedCommand == "1") {
-            tree23.printRootInfo(dataList);
-          } else if (cleanedCommand == "2") {
-            avlTree.printRootInfo(dataList);
-          }
-          std::cout << "\n";
-          
+          tree23.printRootInfo(dataList);
+          std::cout << "\n\n";
+          ismission1done = true;
           break; // 處理完畢跳出迴圈
         }
       }
+    } else if (cleanedCommand == "2") {
+        if (!ismission1done) { 
+          cout << "### Choose 1 first. ###\n\n";
+          continue;
+        }
+        if (ismission2done) { // 重複執行任務二
+          std::cout << "### AVL tree has been built. ###\n";
+        }
+        ismission2done = true;
+        avlTree.ClearAVL();
+        for (int i = 0; i < dataList.size(); i++) {
+          avlTree.Insert(dataList[i].schoolName, dataList[i].id);
+        }   
+        avlTree.printRootInfo(dataList);
+        std::cout << "\n\n";
     } else {
       std::cout << "\nCommand does not exist!\n\n";
     }
   }
 
   tree23.clearTree();
-  avlTree.clearTree();
+  avlTree.ClearAVL();
   return 0;
 }
