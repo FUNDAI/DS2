@@ -242,11 +242,8 @@ class TwoThreeTree {
 };
 
 // ==========================================
-// 任務二：AVL 樹相關類別 (空間預留)
+// 任務二：AVL 樹，同學校名稱的也要放一起
 // ==========================================
-// 依據講義，AVL 樹的 Key 是「學校名稱 (字串)」，同名稱的也要放一起
-
-
 
 
 struct Node {
@@ -264,7 +261,6 @@ struct Node {
     } 
 };
 
-
 class AVLtree {
  private:
   Node* root;
@@ -279,12 +275,12 @@ class AVLtree {
         node->left = Insert(node->left, name, idx);
     } else if (name > node->name) {
         node->right = Insert(node->right, name, idx);
-    } else {
+    } else {// 如果學校存在就直接pushback
         node->ids.push_back(idx);
         return node;
     }
 
-    node->height = 1 + max(Getheight(node->left), Getheight(node->right));
+    node->height = 1 + max(Getheight(node->left), Getheight(node->right)); // 更新樹高
     int bf = Getbf(node); // 當前節點的平衡係數
 
     if (bf > 1) {  // 左邊較重
@@ -315,15 +311,14 @@ class AVLtree {
     // 因為root是private的，為了讓main不能接觸到root，所以private裡面還有一個insert(因為insert一定要傳進root才能做)
   }
 
-  int max(int left, int right) {
-
+  int max(int left, int right) { // 判斷左邊比較高還是右邊比較高
     if (left > right) {
         return left;
     }
     return right;
   }
 
-  int Getheight(Node* node) {
+  int Getheight(Node* node) {  // 取得樹高
     if (node == NULL) {
         return 0;
     } else {
@@ -335,7 +330,7 @@ class AVLtree {
     return Getheight(node->left) - Getheight(node->right);
   }
 
-  Node* LL(Node* x) {
+  Node* LL(Node* x) { // 旋轉
     Node* y = x->left;
     x->left = y->right;
     y->right = x;
@@ -344,7 +339,7 @@ class AVLtree {
     return y;
   }
 
-  Node* RR(Node* x) {
+  Node* RR(Node* x) { // 旋轉
     Node* y = x->right;
     x->right = y->left;
     y->left = x;
@@ -353,13 +348,13 @@ class AVLtree {
     return y;
   }
 
-  Node* RL(Node* x) {
+  Node* RL(Node* x) { // 旋轉
     x->right = LL(x->right);
     Node* y = RR(x);
     return y;
   }
 
-  Node* LR(Node* x) {
+  Node* LR(Node* x) { // 旋轉
     x->left = RR(x->left);
     Node* y = LL(x);
     return y;
@@ -569,7 +564,7 @@ int main() {
           std::cout << "### AVL tree has been built. ###\n";
         }
         ismission2done = true;
-        avlTree.ClearAVL();
+        avlTree.ClearAVL(); // 遞迴清除
         for (int i = 0; i < dataList.size(); i++) {
           avlTree.Insert(dataList[i].schoolName, dataList[i].id);
         }   
