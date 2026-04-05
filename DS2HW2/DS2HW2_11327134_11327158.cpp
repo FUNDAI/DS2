@@ -7,7 +7,7 @@
 
 using namespace std;
 
-// 用來儲存讀入的每一筆完整原始資料
+// 用來儲存原始資料
 class RawData {
  public:
   int id;
@@ -19,9 +19,6 @@ class RawData {
   int graduates;
 };
 
-// ==========================================
-// 任務一：2-3 樹相關類別
-// ==========================================
 class TwoThreeEntry {
  public:
   int key;
@@ -30,15 +27,15 @@ class TwoThreeEntry {
 
 class TwoThreeNode {
  public:
-  std::vector<TwoThreeEntry> entries;
-  std::vector<TwoThreeNode*> children;
-  TwoThreeNode* parent;
+  std::vector<TwoThreeEntry> entries;  
+  std::vector<TwoThreeNode*> children; 
+  TwoThreeNode* parent;               
 
   TwoThreeNode() {
     parent = nullptr;
   }
 
-  bool isLeaf() {
+  bool IsLeaf() {
     if (children.size() == 0) {
       return true;
     }
@@ -54,21 +51,24 @@ class TwoThreeTree {
     root = nullptr;
   }
 
-  void clear(TwoThreeNode* node) {
+  // 遞迴清除
+  void Clear(TwoThreeNode* node) {
     if (node != nullptr) {
       for (int i = 0; i < node->children.size(); i++) {
-        clear(node->children[i]);
+        Clear(node->children[i]);
       }
       delete node;
     }
   }
 
-  void clearTree() {
-    clear(root);
+  // 清空樹
+  void ClearTree() {
+    Clear(root);
     root = nullptr;
   }
 
-  void insertEntryIntoNode(TwoThreeNode* node, TwoThreeEntry newEntry) {
+  // 將新的插入到指定的節點中
+  void InsertEntryIntoNode(TwoThreeNode* node, TwoThreeEntry newEntry) {
     node->entries.push_back(newEntry);
     for (int i = 0; i < node->entries.size(); i++) {
       for (int j = i + 1; j < node->entries.size(); j++) {
@@ -81,38 +81,44 @@ class TwoThreeTree {
     }
   }
 
-  void splitNode(TwoThreeNode* node) {
-    TwoThreeNode* rightNode = new TwoThreeNode();
-    TwoThreeEntry middleEntry = node->entries[1];
-    TwoThreeEntry rightEntry = node->entries[2];
+  // 當節點內達到 3 個時，將節點切成兩半，並把中間的往上給父節點
+  void SplitNode(TwoThreeNode* node) {
+    TwoThreeNode* rightNode = new TwoThreeNode(); // 準備分裂出的右半邊節點
+    TwoThreeEntry middleEntry = node->entries[1]; // 中間的資料 
+    TwoThreeEntry rightEntry = node->entries[2];  // 右邊的資料 
 
     rightNode->entries.push_back(rightEntry);
 
-    if (node->isLeaf() == false) {
+    // 如果該節點不是樹葉，分裂時把子節點分給新的右節點
+    if (node->IsLeaf() == false) {
       rightNode->children.push_back(node->children[2]);
       rightNode->children.push_back(node->children[3]);
       rightNode->children[0]->parent = rightNode;
       rightNode->children[1]->parent = rightNode;
 
-      node->children.pop_back();
+      node->children.pop_back(); // 原本的節點保留左邊兩個子節點
       node->children.pop_back();
     }
 
-    node->entries.pop_back();
+    node->entries.pop_back(); // 原本的節點只保留左邊一個資料
     node->entries.pop_back();
 
+    // 如果分裂的是樹根
     if (node->parent == nullptr) {
       TwoThreeNode* newRoot = new TwoThreeNode();
-      newRoot->entries.push_back(middleEntry);
-      newRoot->children.push_back(node);
-      newRoot->children.push_back(rightNode);
+      newRoot->entries.push_back(middleEntry);     // 中間的資料成為新的樹根
+      newRoot->children.push_back(node);           // 左子樹為原節點
+      newRoot->children.push_back(rightNode);      // 右子樹為新分裂的節點
       node->parent = newRoot;
       rightNode->parent = newRoot;
       root = newRoot;
-    } else {
+    } 
+    // 如果有父節點，將中間的資料與新節點向上合併
+    else {
       TwoThreeNode* parent = node->parent;
-      insertEntryIntoNode(parent, middleEntry);
+      InsertEntryIntoNode(parent, middleEntry); // 把中間資料塞給父節點
 
+      // 找出原節點在父節點 children 陣列中的位置
       int childIndex = 0;
       for (int i = 0; i < parent->children.size(); i++) {
         if (parent->children[i] == node) {
@@ -121,6 +127,7 @@ class TwoThreeTree {
         }
       }
 
+      // 將分裂出來的 rightNode 安插到父節點 children 陣列的適當位置
       parent->children.push_back(nullptr);
       for (int i = parent->children.size() - 1; i > childIndex + 1; i--) {
         parent->children[i] = parent->children[i - 1];
@@ -128,13 +135,16 @@ class TwoThreeTree {
       parent->children[childIndex + 1] = rightNode;
       rightNode->parent = parent;
 
+      // 父節點滿了，繼續遞迴向上分裂
       if (parent->entries.size() == 3) {
-        splitNode(parent);
+        SplitNode(parent);
       }
     }
   }
 
-  void insert(int key, int id) {
+  // 插入一筆新資料到 2-3 樹
+  void Insert(int key, int id) {
+    // 若為空樹，直接建立 root
     if (root == nullptr) {
       root = new TwoThreeNode();
       TwoThreeEntry newEntry;
@@ -147,9 +157,10 @@ class TwoThreeTree {
     TwoThreeNode* curr = root;
     while (true) {
       bool found = false;
+      // 檢查目前的節點中是否已經有相同的畢業生數 
       for (int i = 0; i < curr->entries.size(); i++) {
         if (curr->entries[i].key == key) {
-          curr->entries[i].ids.push_back(id);
+          curr->entries[i].ids.push_back(id); // 直接將 id 加入陣列
           found = true;
           break;
         }
@@ -159,7 +170,8 @@ class TwoThreeTree {
         return; 
       }
 
-      if (curr->isLeaf() == true) {
+      // 決定往哪個子樹走
+      if (curr->IsLeaf() == true) {
         break; 
       } else {
         int childIndex = 0;
@@ -173,44 +185,48 @@ class TwoThreeTree {
       }
     }
 
+    // 建立新的並插入
     TwoThreeEntry newEntry;
     newEntry.key = key;
     newEntry.ids.push_back(id);
 
-    insertEntryIntoNode(curr, newEntry);
+    InsertEntryIntoNode(curr, newEntry);
 
+    // 檢查插入後是否達到 3 個
     if (curr->entries.size() == 3) {
-      splitNode(curr);
+      SplitNode(curr);
     }
   }
 
-  int getHeight() {
+  // 計算樹高
+  int GetHeight() {
     if (root == nullptr) {
       return 0;
     }
     int height = 1;
     TwoThreeNode* curr = root;
-    while (curr->isLeaf() == false) {
+    while (curr->IsLeaf() == false) {
       height = height + 1;
       curr = curr->children[0];
     }
     return height;
   }
 
-  int countNodes(TwoThreeNode* node) {
+  // 遞迴計算整棵樹的節點總數
+  int CountNodes(TwoThreeNode* node) {
     if (node == nullptr) {
       return 0;
     }
     int count = 1;
     for (int i = 0; i < node->children.size(); i++) {
-      count = count + countNodes(node->children[i]);
+      count = count + CountNodes(node->children[i]);
     }
     return count;
   }
 
-  void printRootInfo(std::vector<RawData>& dataList) {
-    int height = getHeight();
-    int nodes = countNodes(root);
+  void PrintRootInfo(std::vector<RawData>& dataList) {
+    int height = GetHeight();
+    int nodes = CountNodes(root);
     std::cout << "Tree height = " << height << "\n";
     std::cout << "Number of nodes = " << nodes << "\n";
 
@@ -220,6 +236,7 @@ class TwoThreeTree {
         for (int j = 0; j < root->entries[i].ids.size(); j++) {
           int targetId = root->entries[i].ids[j];
           RawData targetData;
+          // 利用 targetId 回去 dataList 中抓取完整資料
           for (int k = 0; k < dataList.size(); k++) {
             if (dataList[k].id == targetId) {
               targetData = dataList[k];
@@ -240,11 +257,6 @@ class TwoThreeTree {
     }
   }
 };
-
-// ==========================================
-// 任務二：AVL 樹，同學校名稱的也要放一起
-// ==========================================
-
 
 struct Node {
     Node *right;
@@ -401,7 +413,7 @@ class AVLtree {
 
 int main() {
   TwoThreeTree tree23;
-  AVLtree avlTree; // 實例化 AVL Tree
+  AVLtree avlTree; 
   std::vector<RawData> dataList;
   bool ismission1done = false; // 檢查是否執行過任務一
   bool ismission2done = false; // 檢查是否執行過任務二
@@ -417,10 +429,10 @@ int main() {
     std::string command;
     std::string cleanedCommand = "";
     
-    // 防呆：持續讀取直到有非空白的內容
+    // 持續讀取直到非空白
     while (cleanedCommand.empty()) {
       if (!std::getline(std::cin, command)) {
-        tree23.clearTree();
+        tree23.ClearTree();
         avlTree.ClearAVL();
         return 0;
       }
@@ -450,7 +462,7 @@ int main() {
         while (cleanedFileNum.empty()) {
           std::string fileNum;
           if (!std::getline(std::cin, fileNum)) {
-            tree23.clearTree();
+            tree23.ClearTree();
             avlTree.ClearAVL();
             return 0;
           }
@@ -469,7 +481,7 @@ int main() {
 
         if (cleanedFileNum == "0") {
           std::cout << "\n";
-          break; // 回主選單
+          break; 
         }
 
         std::string filename = "input" + cleanedFileNum + ".txt";
@@ -481,7 +493,7 @@ int main() {
         } else {
           // 檔案開啟成功，清空指定的樹與資料陣列
           if (cleanedCommand == "1") {
-            tree23.clearTree();
+            tree23.ClearTree();
           } else if (cleanedCommand == "2") {
             avlTree.ClearAVL();
           }
@@ -541,7 +553,7 @@ int main() {
               
               // 根據指令，將資料送到對應的樹結構中
               if (cleanedCommand == "1") {
-                tree23.insert(data.graduates, data.id);
+                tree23.Insert(data.graduates, data.id);
               }     
               currentId = currentId + 1;
             }
@@ -549,7 +561,7 @@ int main() {
           infile.close();
 
           // 根據指令印出對應的結果
-          tree23.printRootInfo(dataList);
+          tree23.PrintRootInfo(dataList);
           std::cout << "\n\n";
           ismission1done = true;
           break; // 處理完畢跳出迴圈
@@ -575,7 +587,7 @@ int main() {
     }
   }
 
-  tree23.clearTree();
+  tree23.ClearTree();
   avlTree.ClearAVL();
   return 0;
 }
