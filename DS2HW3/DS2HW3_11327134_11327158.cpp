@@ -145,8 +145,19 @@ std::string charArrayToString(char arr[], int size) {
   return res;
 }
 
-// 任務一：以平方探測建立雜湊表 X
-bool executeTask1(std::string fileNumber) {
+
+unsigned long long getKeyProduct(std::string key) {
+    unsigned long long product = 1;
+    for (int i = 0; i < key.length(); i++) {
+        product = product * (unsigned char)(key[i]);
+    }
+    return product;
+}
+
+
+
+bool executeTask1(std::string fileNumber, std::vector<Student> &students) {
+  students.clear();
   std::string binName = "input" + fileNumber + ".bin";
   std::ifstream inFile(binName, std::ios::binary);
 
@@ -162,7 +173,6 @@ bool executeTask1(std::string fileNumber) {
     }
   }
 
-  std::vector<Student> students;
   Student temp;
   while (inFile.read((char*)&temp, sizeof(Student))) {
     students.push_back(temp);
@@ -226,12 +236,12 @@ bool executeTask1(std::string fileNumber) {
     int j = 0;
     int count = 0;
     while (true) {
-      count = count + 1;
       int pos = (i + j * j) % tableSize;
       
       if (hashTable[pos].isEmpty == true) {
         break;
       }
+      count = count + 1;
       // 防呆機制：避免無限迴圈
       if (j >= tableSize) {
         break; 
@@ -293,31 +303,91 @@ bool executeTask1(std::string fileNumber) {
   return true;
 }
 
-int main() {
-  std::string command = "";
-  
-  while (true) {
-    std::cout << "* Data Structures and Algorithms *\n";
-    std::cout << "************ Hash Table **********\n";
-    std::cout << "* 0. QUIT                        *\n";
-    std::cout << "* 1. Quadratic probing           *\n";
-    std::cout << "* 2. Double hashing              *\n";
-    std::cout << "**********************************\n";
-    std::cout << "Input a choice(0, 1, 2): ";
-    std::cin >> command;
-
-    if (command == "0") {
-      break;
-    } else if (command == "1") {
-      std::string fileNum = "";
-      std::cout << "\nInput a file number: ";
-      std::cin >> fileNum;
-      executeTask1(fileNum);
-      std::cout << "\n";
-    } else {
-      std::cout << "\nCommand does not exist!\n\n";
+bool executeTask2(std::string fileNumber, std::vector<Student>& students) {
+    if (students.empty()) {
+        std::cout << "\n### Please execute Task 1 first! ###\n";
+        return false;
     }
-  }
+    
+    int successfulSearches2 = 0;
+    int successfulComparisons2 = 0;
 
-  return 0;
+    int tableSize = getNextPrime((int)(students.size() * 1.15) + 1);
+    int maxStep = getNextPrime((int)students.size() / 5 + 1);
+    std::vector<HashNode> hashTable(tableSize);
+    int successComp = 0;
+
+    for (int i = 0; i < students.size(); i++) {
+        unsigned long long prod = getKeyProduct(charArrayToString(students[i].sid, 10));
+        int hvalue = prod % tableSize;
+        int step = maxStep - (int)(prod % maxStep);
+
+        for (int j = 0; j < tableSize; j++) {
+            int pos = (hvalue + j * step) % tableSize;
+            if (hashTable[pos].isEmpty) {
+                hashTable[pos].isEmpty = false;
+                hashTable[pos].hvalue = hvalue;
+                hashTable[pos].mean = students[i].average;
+                for (int k = 0; k < 10; k++) {
+                    hashTable[pos].sid[k] = students[i].sid[k];
+                    hashTable[pos].sname[k] = students[i].sname[k];
+                }        
+                successfulSearches2 = successfulSearches2 + 1;
+                successfulComparisons2 = successfulComparisons2 + (j + 1);
+                break;
+            }
+        }
+    }
+   double avgSuccess2 = (double)successfulComparisons2 / successfulSearches2;
+
+    // 輸出檔案 (標頭改為 Double hashing)
+    std::ofstream outFile(("double" + fileNumber + ".txt").c_str());
+    outFile << " --- Hash table created by Double hashing ---\n";
+    for (int i = 0; i < tableSize; i++) {
+        outFile << "[" << std::setw(3) << std::right << i << "] ";
+        if (!hashTable[i].isEmpty) {
+            outFile << std::setw(10) << hashTable[i].hvalue << ", " << std::setw(10) << charArrayToString(hashTable[i].sid, 10) 
+                    << ", " << charArrayToString(hashTable[i].sname, 10) << ", ";
+            if (hashTable[i].mean == (int)hashTable[i].mean) {
+                outFile << std::setw(10) << (int)hashTable[i].mean << "\n";
+            } else { 
+                std::stringstream ss; 
+                ss << hashTable[i].mean; 
+                outFile << std::setw(10) << ss.str() << "\n"; 
+            }
+        } else {
+            outFile << "\n";
+        }
+    }
+    outFile << " ----------------------------------------------------- \n";
+    outFile.close();
+
+    std::cout << "\nHash table has been successfully created by Double hashing\n";
+    std::cout << "successful search: " << std::fixed << std::setprecision(4) << avgSuccess2 << " comparisons on average\n";
+    return true;
+}
+
+int main() {
+    std::string cmd, fileNum;
+    std::vector<Student> students;
+    while (true) {
+        std::cout << "* Data Structures and Algorithms *\n";
+        std::cout << "************ Hash Table **********\n";
+        std::cout << "* 0. QUIT                        *\n";
+        std::cout << "* 1. Quadratic probing           *\n";
+        std::cout << "* 2. Double hashing              *\n";
+        std::cout << "**********************************\n";
+        std::cout << "Input a choice(0, 1, 2): ";
+        std::cin >> cmd;
+        if (cmd == "0") break;
+        else if (cmd == "1") {
+            std::cout << "\nInput a file number: "; std::cin >> fileNum;
+            executeTask1(fileNum, students);
+            std::cout << "\n";
+        } else if (cmd == "2") {
+            executeTask2(fileNum, students);
+            std::cout << "\n";
+        } else std::cout << "\nCommand does not exist!\n\n";
+    }
+    return 0;
 }
