@@ -340,7 +340,7 @@ bool executeTask2(std::string fileNumber, std::vector<Student>& students) {
     }
    double avgSuccess2 = (double)successfulComparisons2 / successfulSearches2;
 
-    // 輸出檔案 (標頭改為 Double hashing)
+
     std::ofstream outFile(("double" + fileNumber + ".txt").c_str());
     outFile << " --- Hash table created by Double hashing ---\n";
     for (int i = 0; i < tableSize; i++) {
