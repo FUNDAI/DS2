@@ -33,6 +33,10 @@ struct HashNode {
   }
 };
 
+class ForDC {
+  int temp;
+};
+
 // 任務零：文字檔轉二進位檔   
 bool executeTask0(std::string fileNumber) {
   std::string txtName = "input" + fileNumber + ".txt";
@@ -40,7 +44,7 @@ bool executeTask0(std::string fileNumber) {
 
   std::ifstream inFile(txtName);
   if (!inFile.is_open()) {
-    std::cout << "\n### " << txtName << " does not exist! ###\n";
+    std::cout << "\n### " << txtName << " does not exist! ###\n\n";
     return false;
   }
 
@@ -58,16 +62,24 @@ bool executeTask0(std::string fileNumber) {
     }
 
     std::stringstream ss(line);
-    std::string sid_str;
-    std::string sname_str;
-    int sc[6];
-    float avg;
+    std::string token;
+    std::vector<std::string> tokens;
 
-    if (ss >> sid_str >> sname_str) {
+    // 修復：使用 Tab (\t) 精準切割欄位，避免名字中有空格造成錯位
+    while (std::getline(ss, token, '\t')) {
+      tokens.push_back(token);
+    }
+
+    if (tokens.size() >= 9) {
+      std::string sid_str = tokens[0];
+      std::string sname_str = tokens[1];
+      int sc[6];
+      float avg;
+
       for (int i = 0; i < 6; i++) {
-        ss >> sc[i];
+        std::stringstream(tokens[2 + i]) >> sc[i];
       }
-      ss >> avg;
+      std::stringstream(tokens[8]) >> avg;
 
       Student s;
       for (int i = 0; i < 10; i++) {
@@ -259,10 +271,9 @@ bool executeTask1(std::string fileNumber, std::vector<Student> &students) {
   std::ofstream outFile(outTxtName);
   
   // 輸出標頭
-  outFile << " --- Hash table created by Quadratic probing ---\n";
+outFile << " --- Hash table created by Quadratic probing ---\n";
   
   for (int i = 0; i < tableSize; i++) {
-    // 輸出陣列索引，寬度 3，向右對齊
     outFile << "[" << std::setw(3) << std::right << i << "] ";
     
     if (hashTable[i].isEmpty == true) {
@@ -271,27 +282,20 @@ bool executeTask1(std::string fileNumber, std::vector<Student> &students) {
       std::string sid_out = charArrayToString(hashTable[i].sid, 10);
       std::string sname_out = charArrayToString(hashTable[i].sname, 10);
       
-      // hvalue 寬度 10
-      outFile << std::setw(10) << std::right << hashTable[i].hvalue << ", ";
-      // sid 寬度 10
-      outFile << std::setw(10) << std::right << sid_out << ", ";
-      // 姓名不設定寬度
-      outFile << sname_out << ", ";
-      
-      // 平均分數
-      // 判斷是否為整數，若是則不顯示小數點
+      // 統一設定寬度 10，向右對齊
+      outFile << std::setw(10) << std::right << hashTable[i].hvalue << ", "
+              << std::setw(10) << std::right << sid_out << ", "
+              << std::setw(10) << std::right << sname_out << ", ";
+              
       if (hashTable[i].mean == (int)hashTable[i].mean) {
         outFile << std::setw(10) << std::right << (int)hashTable[i].mean << "\n";
       } else {
-        // 取兩位小數 (去除尾隨零) 的簡單作法
-        std::stringstream temp_ss;
-        temp_ss << hashTable[i].mean;
-        outFile << std::setw(10) << std::right << temp_ss.str() << "\n";
+        std::stringstream ss;
+        ss << hashTable[i].mean;
+        outFile << std::setw(10) << std::right << ss.str() << "\n";
       }
     }
   }
-  
-  // 輸出結尾分隔線
   outFile << " ----------------------------------------------------- \n";
   outFile.close();
 
@@ -305,7 +309,7 @@ bool executeTask1(std::string fileNumber, std::vector<Student> &students) {
 
 bool executeTask2(std::string fileNumber, std::vector<Student>& students) {
     if (students.empty()) {
-        std::cout << "\n### Please execute Task 1 first! ###\n";
+        std::cout << "### Command 1 first. ###\n\n";
         return false;
     }
     
@@ -341,33 +345,45 @@ bool executeTask2(std::string fileNumber, std::vector<Student>& students) {
    double avgSuccess2 = (double)successfulComparisons2 / successfulSearches2;
 
 
-    std::ofstream outFile(("double" + fileNumber + ".txt").c_str());
-    outFile << " --- Hash table created by Double hashing ---\n";
-    for (int i = 0; i < tableSize; i++) {
-        outFile << "[" << std::setw(3) << std::right << i << "] ";
-        if (!hashTable[i].isEmpty) {
-            outFile << std::setw(10) << hashTable[i].hvalue << ", " << std::setw(10) << charArrayToString(hashTable[i].sid, 10) 
-                    << ", " << charArrayToString(hashTable[i].sname, 10) << ", ";
-            if (hashTable[i].mean == (int)hashTable[i].mean) {
-                outFile << std::setw(10) << (int)hashTable[i].mean << "\n";
-            } else { 
-                std::stringstream ss; 
-                ss << hashTable[i].mean; 
-                outFile << std::setw(10) << ss.str() << "\n"; 
-            }
-        } else {
-            outFile << "\n";
-        }
-    }
-    outFile << " ----------------------------------------------------- \n";
-    outFile.close();
+  std::ofstream outFile(("double" + fileNumber + ".txt").c_str());
+outFile << " --- Hash table created by Double hashing    ---\n";
+  
+  for (int i = 0; i < tableSize; i++) {
+    // 輸出陣列索引，寬度 3
+    outFile << "[" << std::setw(3) << std::right << i << "] ";
+    
+    if (!hashTable[i].isEmpty) {
+      std::string sid_out = charArrayToString(hashTable[i].sid, 10);
+      std::string sname_out = charArrayToString(hashTable[i].sname, 10);
 
-    std::cout << "\nHash table has been successfully created by Double hashing\n";
-    std::cout << "successful search: " << std::fixed << std::setprecision(4) << avgSuccess2 << " comparisons on average\n";
-    return true;
+      // hvalue, sid, sname 統一設定寬度 10，向右對齊
+      outFile << std::setw(10) << std::right << hashTable[i].hvalue << ", " 
+              << std::setw(10) << std::right << sid_out << ", " 
+              << std::setw(10) << std::right << sname_out << ", ";
+              
+      // 分數處理
+      if (hashTable[i].mean == (int)hashTable[i].mean) {
+        outFile << std::setw(10) << std::right << (int)hashTable[i].mean << "\n";
+      } else { 
+        std::stringstream ss; 
+        ss << hashTable[i].mean; 
+        outFile << std::setw(10) << std::right << ss.str() << "\n"; 
+      }
+    } else {
+      outFile << "\n";
+    }
+  }
+  
+  outFile << " ----------------------------------------------------- \n";
+  outFile.close();
+
+  std::cout << "\nHash table has been successfully created by Double hashing   \n";
+  std::cout << "successful search: " << std::fixed << std::setprecision(4) << avgSuccess2 << " comparisons on average\n";
+  return true;
 }
 
 int main() {
+    ForDC wut;
     std::string cmd, fileNum;
     std::vector<Student> students;
     while (true) {
@@ -381,13 +397,18 @@ int main() {
         std::cin >> cmd;
         if (cmd == "0") break;
         else if (cmd == "1") {
-            std::cout << "\nInput a file number: "; std::cin >> fileNum;
-            executeTask1(fileNum, students);
+            std::cout << "\nInput a file number ([0] Quit): "; 
+            std::cin >> fileNum;
+            if (fileNum != "0") {
+              executeTask1(fileNum, students);
+            } else {
+              std::cout << "\n";
+            }
             std::cout << "\n";
         } else if (cmd == "2") {
             executeTask2(fileNum, students);
             std::cout << "\n";
-        } else std::cout << "\nCommand does not exist!\n\n";
+        } else std::cout << "\nCommand does not exist!\n\n\n";
     }
     return 0;
 }
