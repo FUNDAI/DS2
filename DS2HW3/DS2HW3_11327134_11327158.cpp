@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include <iomanip>
+#include <cstring>
+#include <cmath> // 為了使用 round()
 
 // 任務零指定的二進位資料結構
 struct Student {
@@ -31,10 +33,6 @@ struct HashNode {
       sname[i] = '\0';
     }
   }
-};
-
-class ForDC {
-  int temp;
 };
 
 // 任務零：文字檔轉二進位檔   
@@ -65,7 +63,6 @@ bool executeTask0(std::string fileNumber) {
     std::string token;
     std::vector<std::string> tokens;
 
-    // 修復：使用 Tab (\t) 精準切割欄位，避免名字中有空格造成錯位
     while (std::getline(ss, token, '\t')) {
       tokens.push_back(token);
     }
@@ -109,19 +106,11 @@ bool executeTask0(std::string fileNumber) {
 
 // 判斷是否為質數的輔助函式
 bool isPrime(int n) {
-  if (n <= 1) {
-    return false;
-  }
-  if (n == 2) {
-    return true;
-  }
-  if (n % 2 == 0) {
-    return false;
-  }
+  if (n <= 1) return false;
+  if (n == 2) return true;
+  if (n % 2 == 0) return false;
   for (int i = 3; i * i <= n; i = i + 2) {
-    if (n % i == 0) {
-      return false;
-    }
+    if (n % i == 0) return false;
   }
   return true;
 }
@@ -129,9 +118,7 @@ bool isPrime(int n) {
 // 尋找大於指定數值的最小質數
 int getNextPrime(int n) {
   while (true) {
-    if (isPrime(n) == true) {
-      return n;
-    }
+    if (isPrime(n)) return n;
     n = n + 1;
   }
 }
@@ -149,14 +136,11 @@ int hashFunction(std::string key, int tableSize) {
 std::string charArrayToString(char arr[], int size) {
   std::string res = "";
   for (int i = 0; i < size; i++) {
-    if (arr[i] == '\0') {
-      break;
-    }
+    if (arr[i] == '\0') break;
     res = res + arr[i];
   }
   return res;
 }
-
 
 unsigned long long getKeyProduct(std::string key) {
     unsigned long long product = 1;
@@ -166,23 +150,95 @@ unsigned long long getKeyProduct(std::string key) {
     return product;
 }
 
+// 輔助函式：將平均分數格式化（四捨五入到小數點後兩位，若末位為0則省略）
+std::string formatScore(float val) {
+    // 先做四捨五入到第二位
+    double rounded = std::round(val * 100.0) / 100.0;
+    std::stringstream ss;
+    ss << rounded; // stringstream 預設會去掉尾端多餘的 0
+    return ss.str();
+}
 
+// --- 任務三：Quadratic Probing 搜尋功能 ---
+void searchTask3(const std::vector<HashNode>& hashTable, int tableSize) {
+    std::string searchSid;
+    while (true) {
+        std::cout << "Input a student ID to search ([0] Quit): ";
+        std::cin >> searchSid;
+        if (searchSid == "0") break;
+
+        int hvalue = hashFunction(searchSid, tableSize);
+        int probeCount = 0;
+        bool found = false;
+
+        for (int j = 0; j < tableSize; j++) {
+            probeCount++;
+            int pos = (hvalue + j * j) % tableSize;
+            
+            if (hashTable[pos].isEmpty) {
+                break; 
+            } else if (charArrayToString((char*)hashTable[pos].sid, 10) == searchSid) {
+                std::cout << "{ " << charArrayToString((char*)hashTable[pos].sid, 10) << ", " 
+                          << charArrayToString((char*)hashTable[pos].sname, 10) << ", " 
+                          << formatScore(hashTable[pos].mean) 
+                          << " } is found after " << probeCount << " probes.\n";
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            std::cout << searchSid << " is not found after " << probeCount << " probes.\n";
+        }
+    }
+}
+
+// --- 任務四：Double Hashing 搜尋功能 ---
+void searchTask4(const std::vector<HashNode>& hashTable, int tableSize, int maxStep) {
+    std::string searchSid;
+    while (true) {
+        std::cout << "Input a student ID to search ([0] Quit): ";
+        std::cin >> searchSid;
+        if (searchSid == "0") break;
+
+        unsigned long long prod = getKeyProduct(searchSid);
+        int hvalue = prod % tableSize;
+        int step = maxStep - (int)(prod % maxStep);
+        int probeCount = 0;
+        bool found = false;
+
+        for (int j = 0; j < tableSize; j++) {
+            probeCount++;
+            int pos = (hvalue + j * step) % tableSize;
+            
+            if (hashTable[pos].isEmpty) {
+                break;
+            } else if (charArrayToString((char*)hashTable[pos].sid, 10) == searchSid) {
+                std::cout << "{ " << charArrayToString((char*)hashTable[pos].sid, 10) << ", " 
+                          << charArrayToString((char*)hashTable[pos].sname, 10) << ", " 
+                          << formatScore(hashTable[pos].mean) 
+                          << " } is found after " << probeCount << " probes.\n";
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            std::cout << searchSid << " is not found after " << probeCount << " probes.\n";
+        }
+    }
+}
 
 bool executeTask1(std::string fileNumber, std::vector<Student> &students) {
   students.clear();
   std::string binName = "input" + fileNumber + ".bin";
   std::ifstream inFile(binName, std::ios::binary);
 
-  // 檢查二進位檔是否存在，若不存在則先執行任務零
   if (!inFile.is_open()) {
     std::cout << "\n### " << binName << " does not exist! ###\n";
-    if (executeTask0(fileNumber) == false) {
-      return false;
-    }
+    if (executeTask0(fileNumber) == false) return false;
     inFile.open(binName, std::ios::binary);
-    if (!inFile.is_open()) {
-      return false;
-    }
+    if (!inFile.is_open()) return false;
   }
 
   Student temp;
@@ -191,36 +247,21 @@ bool executeTask1(std::string fileNumber, std::vector<Student> &students) {
   }
   inFile.close();
 
-  if (students.size() == 0) {
-    std::cout << "### No data in file! ###\n";
-    return false;
-  }
+  if (students.size() == 0) return false;
 
   int totalRecords = students.size();
-  // 雜湊表大小 = 大於 1.15 倍資料總筆數的最小質數
-  int minVal = totalRecords * 1.15;
-  int tableSize = getNextPrime(minVal + 1);
-
+  int tableSize = getNextPrime((int)(totalRecords * 1.15) + 1);
   std::vector<HashNode> hashTable(tableSize);
 
-  int successfulSearches = 0;
-  int successfulComparisons = 0;
+  int successfulSearches = 0, successfulComparisons = 0;
 
-  // 依序將資料加入雜湊表
   for (int i = 0; i < totalRecords; i++) {
     std::string sid_str = charArrayToString(students[i].sid, 10);
     int hvalue = hashFunction(sid_str, tableSize);
     int j = 0;
-    bool inserted = false;
-
-    while (true) {
-      // 防呆檢查：若迴圈次數超過表格大小，代表找不到空位
-      if (j >= tableSize) {
-        break;
-      }
-      
+    while (j < tableSize) {
       int pos = (hvalue + j * j) % tableSize;
-      if (hashTable[pos].isEmpty == true) {
+      if (hashTable[pos].isEmpty) {
         hashTable[pos].isEmpty = false;
         hashTable[pos].hvalue = hvalue;
         for (int k = 0; k < 10; k++) {
@@ -228,82 +269,30 @@ bool executeTask1(std::string fileNumber, std::vector<Student> &students) {
           hashTable[pos].sname[k] = students[i].sname[k];
         }
         hashTable[pos].mean = students[i].average;
-
-        successfulSearches = successfulSearches + 1;
-        successfulComparisons = successfulComparisons + (j + 1);
-        inserted = true;
+        successfulSearches++;
+        successfulComparisons += (j + 1);
         break;
       }
-      j = j + 1;
-    }
-
-    if (inserted == false) {
-      std::cout << "Cannot insert student: " << sid_str << " (Hash Table is full or probing failed)\n";
+      j++;
     }
   }
 
-  // 計算搜尋不存在值的比較次數
   int unsuccessfulComparisons = 0;
   for (int i = 0; i < tableSize; i++) {
     int j = 0;
-    int count = 0;
-    while (true) {
+    while (j < tableSize) {
       int pos = (i + j * j) % tableSize;
-      
-      if (hashTable[pos].isEmpty == true) {
-        break;
-      }
-      count = count + 1;
-      // 防呆機制：避免無限迴圈
-      if (j >= tableSize) {
-        break; 
-      }
-      j = j + 1;
-    }
-    unsuccessfulComparisons = unsuccessfulComparisons + count;
-  }
-
-  double avgSuccess = (double)successfulComparisons / successfulSearches;
-  double avgUnsuccess = (double)unsuccessfulComparisons / tableSize;
-
-  // 輸出檔案
-  std::string outTxtName = "quadratic" + fileNumber + ".txt";
-  std::ofstream outFile(outTxtName);
-  
-  // 輸出標頭
-outFile << " --- Hash table created by Quadratic probing ---\n";
-  
-  for (int i = 0; i < tableSize; i++) {
-    outFile << "[" << std::setw(3) << std::right << i << "] ";
-    
-    if (hashTable[i].isEmpty == true) {
-      outFile << "\n";
-    } else {
-      std::string sid_out = charArrayToString(hashTable[i].sid, 10);
-      std::string sname_out = charArrayToString(hashTable[i].sname, 10);
-      
-      // 統一設定寬度 10，向右對齊
-      outFile << std::setw(10) << std::right << hashTable[i].hvalue << ", "
-              << std::setw(10) << std::right << sid_out << ", "
-              << std::setw(10) << std::right << sname_out << ", ";
-              
-      if (hashTable[i].mean == (int)hashTable[i].mean) {
-        outFile << std::setw(10) << std::right << (int)hashTable[i].mean << "\n";
-      } else {
-        std::stringstream ss;
-        ss << hashTable[i].mean;
-        outFile << std::setw(10) << std::right << ss.str() << "\n";
-      }
+      if (hashTable[pos].isEmpty) break;
+      unsuccessfulComparisons++;
+      j++;
     }
   }
-  outFile << " ----------------------------------------------------- \n";
-  outFile.close();
 
-  // 螢幕輸出
   std::cout << "\nHash table has been successfully created by Quadratic probing\n";
-  std::cout << "unsuccessful search: " << std::fixed << std::setprecision(4) << avgUnsuccess << " comparisons on average\n";
-  std::cout << "successful search: " << std::fixed << std::setprecision(4) << avgSuccess << " comparisons on average\n";
+  std::cout << "unsuccessful search: " << std::fixed << std::setprecision(4) << (double)unsuccessfulComparisons / tableSize << " comparisons on average\n";
+  std::cout << "successful search: " << std::fixed << std::setprecision(4) << (double)successfulComparisons / successfulSearches << " comparisons on average\n";
 
+  searchTask3(hashTable, tableSize);
   return true;
 }
 
@@ -313,13 +302,10 @@ bool executeTask2(std::string fileNumber, std::vector<Student>& students) {
         return false;
     }
     
-    int successfulSearches2 = 0;
-    int successfulComparisons2 = 0;
-
+    int successfulSearches2 = 0, successfulComparisons2 = 0;
     int tableSize = getNextPrime((int)(students.size() * 1.15) + 1);
     int maxStep = getNextPrime((int)students.size() / 5 + 1);
     std::vector<HashNode> hashTable(tableSize);
-    int successComp = 0;
 
     for (int i = 0; i < students.size(); i++) {
         unsigned long long prod = getKeyProduct(charArrayToString(students[i].sid, 10));
@@ -336,54 +322,21 @@ bool executeTask2(std::string fileNumber, std::vector<Student>& students) {
                     hashTable[pos].sid[k] = students[i].sid[k];
                     hashTable[pos].sname[k] = students[i].sname[k];
                 }        
-                successfulSearches2 = successfulSearches2 + 1;
-                successfulComparisons2 = successfulComparisons2 + (j + 1);
+                successfulSearches2++;
+                successfulComparisons2 += (j + 1);
                 break;
             }
         }
     }
-   double avgSuccess2 = (double)successfulComparisons2 / successfulSearches2;
 
+  std::cout << "\nHash table has been successfully created by Double hashing\n";
+  std::cout << "successful search: " << std::fixed << std::setprecision(4) << (double)successfulComparisons2 / successfulSearches2 << " comparisons on average\n";
 
-  std::ofstream outFile(("double" + fileNumber + ".txt").c_str());
-outFile << " --- Hash table created by Double hashing    ---\n";
-  
-  for (int i = 0; i < tableSize; i++) {
-    // 輸出陣列索引，寬度 3
-    outFile << "[" << std::setw(3) << std::right << i << "] ";
-    
-    if (!hashTable[i].isEmpty) {
-      std::string sid_out = charArrayToString(hashTable[i].sid, 10);
-      std::string sname_out = charArrayToString(hashTable[i].sname, 10);
-
-      // hvalue, sid, sname 統一設定寬度 10，向右對齊
-      outFile << std::setw(10) << std::right << hashTable[i].hvalue << ", " 
-              << std::setw(10) << std::right << sid_out << ", " 
-              << std::setw(10) << std::right << sname_out << ", ";
-              
-      // 分數處理
-      if (hashTable[i].mean == (int)hashTable[i].mean) {
-        outFile << std::setw(10) << std::right << (int)hashTable[i].mean << "\n";
-      } else { 
-        std::stringstream ss; 
-        ss << hashTable[i].mean; 
-        outFile << std::setw(10) << std::right << ss.str() << "\n"; 
-      }
-    } else {
-      outFile << "\n";
-    }
-  }
-  
-  outFile << " ----------------------------------------------------- \n";
-  outFile.close();
-
-  std::cout << "\nHash table has been successfully created by Double hashing   \n";
-  std::cout << "successful search: " << std::fixed << std::setprecision(4) << avgSuccess2 << " comparisons on average\n";
+  searchTask4(hashTable, tableSize, maxStep);
   return true;
 }
 
 int main() {
-    ForDC wut;
     std::string cmd, fileNum;
     std::vector<Student> students;
     while (true) {
@@ -399,14 +352,12 @@ int main() {
         else if (cmd == "1") {
             std::cout << "\nInput a file number ([0] Quit): "; 
             std::cin >> fileNum;
-            if (fileNum != "0") {
-              executeTask1(fileNum, students);
-            } else {
-              std::cout << "\n";
-            }
+            if (fileNum != "0") executeTask1(fileNum, students);
             std::cout << "\n";
         } else if (cmd == "2") {
-            executeTask2(fileNum, students);
+            std::cout << "\nInput a file number ([0] Quit): ";
+            std::cin >> fileNum;
+            if (fileNum != "0") executeTask2(fileNum, students);
             std::cout << "\n";
         } else std::cout << "\nCommand does not exist!\n\n\n";
     }
