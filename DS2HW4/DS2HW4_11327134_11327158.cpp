@@ -151,6 +151,99 @@ class Graph {
         cout << "\n<<< There are " << (int)headVector.size() << " IDs in total. >>>\n\n";
         cout << "<<< There are " << totalNodes << " nodes in total. >>>\n";
     }
+
+  void mission2(string fileNum, vector<HeadNode>& headVector) {
+    struct CntResult {
+      string studentID;
+      int count;
+      vector<string> reachable;
+    };
+    
+    vector<CntResult> results(headVector.size());
+    for (int i = 0; i < (int)headVector.size(); ++i) {
+      results[i].studentID = headVector[i].studentID;
+      results[i].count = 0;
+      
+      vector<bool> visited(headVector.size(), false);
+      vector<int> q;
+      q.push_back(i);
+      visited[i] = true;
+      
+      int head = 0;
+      while (head < (int)q.size()) {
+        int curr = q[head++];
+        Node* arc = headVector[curr].firstArc;
+        
+        while (arc != nullptr) {
+          int left = 0;
+          int right = (int)headVector.size() - 1;
+          int neighbor = -1;
+          
+          while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (headVector[mid].studentID == arc->getID) {
+              neighbor = mid;
+              break;
+            }
+            if (headVector[mid].studentID < arc->getID) {
+              left = mid + 1;
+            } else {
+              right = mid - 1;
+            }
+          }
+          
+          if (neighbor != -1 && !visited[neighbor]) {
+            visited[neighbor] = true;
+            results[i].reachable.push_back(arc->getID);
+            q.push_back(neighbor);
+          }
+          arc = arc->next;
+        }
+      }
+      results[i].count = (int)results[i].reachable.size();
+      sort(results[i].reachable.begin(), results[i].reachable.end());
+    }
+    
+    vector<int> idx(results.size());
+    for (int i = 0; i < (int)idx.size(); ++i) {
+      idx[i] = i;
+    }
+    
+    sort(idx.begin(), idx.end(), [&](int a, int b) {
+      if (results[a].count != results[b].count) {
+        return results[a].count > results[b].count;
+      }
+      return results[a].studentID < results[b].studentID;
+    });
+    
+    string cntName = "pairs" + fileNum + ".cnt";
+    ofstream outFile(cntName);
+    
+    outFile << "<<< There are " << (int)headVector.size() << " IDs in total. >>>\n";
+    for (int i = 0; i < (int)idx.size(); ++i) {
+      int realIdx = idx[i];
+      outFile << "[" << setw(3) << right << i + 1 << "] " 
+              << results[realIdx].studentID << "(" << results[realIdx].count << "): \n";
+              
+      int countItem = 0;
+      int nodeIdx = 1;
+      for (int j = 0; j < results[realIdx].count; ++j) {
+        if (countItem >= 12) {
+          countItem = 0;
+        }
+        outFile << "\t(" << setw(2) << right << nodeIdx << ") " << results[realIdx].reachable[j];
+        nodeIdx++;
+        countItem++;
+        
+        if (countItem == 12) {
+          outFile << "\n";
+        }
+      }
+      outFile << "\n";
+    }
+    outFile.close();
+    cout << "\n<<< There are " << (int)headVector.size() << " IDs in total. >>>\n\n";
+  }
 };
 
 
@@ -185,7 +278,7 @@ int main() {
             if (headVector.empty()) {
                 std::cout << "### There is no graph and choose 1 first. ###\n\n";
             } else {
-
+              graph.mission2(fileNum, headVector);
             }
         } else std::cout << "\nCommand does not exist!\n\n";
     }
