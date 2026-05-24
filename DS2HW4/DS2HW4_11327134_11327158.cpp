@@ -56,7 +56,7 @@ class Graph {
         return (int)headVector.size() - 1;
     }
 
-    // 輔助靜態函式：用於 std::sort 排序主陣列
+    // 輔助靜態函式：用於 std::sort 排序主陣列，告訴他是比ID 且是由小到大
     static bool compareByStudentID(const HeadNode& a, const HeadNode& b) {
         return a.studentID < b.studentID;
     }
@@ -272,6 +272,9 @@ int main() {
             std::cin >> fileNum;
             if (fileNum != "0") {
                 graph.mission1(fileNum, students, headVector);
+            } else if (fileNum == "0") {
+                students.clear();
+                headVector.clear();
             }
             std::cout << "\n";
         } else if (cmd == "2") {
