@@ -288,22 +288,46 @@ class Graph {
 
         float threshold;
         while (true) {
-            std::cout << "\nInput a real number in [0.66,1.0]: \n";
+            std::cout << "\nInput a real number in [0.66,1.0]: ";
             std::cin >> threshold;
 
-            // 檢查是不是輸入了英文字母或符號導致 cin 壞掉
+            // 一、檢查是否輸入了「非數字」（文字、純符號、文字混符號）導致 cin 壞掉
             if (std::cin.fail()) {
-                std::cin.clear(); // 1. 回復 cin 的正常運作狀態
-                // 2. 跳過緩衝區內的所有錯誤字元，直到遇到換行符號 \n 為止
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+                std::cin.clear(); // 清除錯誤旗標
+                
+                string garbage;
+                std::cin >> garbage; // 吃掉緩衝區的髒資料
+
+                // 檢查這串髒資料裡面，是不是「含有任何英文字母」
+                bool hasLetter = false;
+                for (int i = 0; i < (int)garbage.length(); ++i) {
+                    if (isalpha(garbage[i])) {
+                        hasLetter = true;
+                        break; 
+                    }
+                }
+
+                // 如果「一個字母都沒有」，代表它是純符號（如 ###, ...），才印出錯誤訊息
+                if (!hasLetter) {
+                    std::cout << "\n### It is NOT in [0.66,1.0] ###\n";
+                }
+                
                 continue; // 重新開始迴圈
             }
 
-            // 如果是正常的數字，再判斷範圍是否正確
+            // 二、如果是正常數字，進行數值防呆
+            if (threshold < 0.0f) {
+                // 負數：依要求「不輸出錯誤訊息」，默默重新輸入
+                continue;
+            }
+
             if (threshold >= 0.66f && threshold <= 1.0f) {
+                // 成功過關，跳出迴圈
                 break;
             }
-            std::cout << "### It is NOT in [0.66,1.0] ###\n";
+
+            // 正數但超出 [0.66, 1.0] 範圍（例如 0.5 或 1.5）：印出錯誤訊息
+            std::cout << "\n### It is NOT in [0.66,1.0] ###\n";
         }
 
         struct InfResult {
@@ -356,7 +380,7 @@ class Graph {
         }
 
         outFile.close();
-        cout << "<<< There are " << (int)results.size() << " IDs in total. >>>\n\n";
+        cout << "\n<<< There are " << (int)results.size() << " IDs in total. >>>\n\n";
 
     }  // --- 新增功能：任務四（以固定門檻找出前 K 名估計影響力並印於螢幕） ---
   void mission4(const vector<HeadNode>& headVector) {
@@ -404,19 +428,66 @@ class Graph {
 
     // 輸出至螢幕
     cout << "\n[Elapsed time] " << duration << " ms\n\n";
-
-    int k;
-    while (true) {
-        std::cout << "Input an integer to show top-K in [1,48]: \n";
-        std::cin >> k;
-        if (k > 0 && k <= 48) {
-            break;
-        } else if (k < 0) {
-            continue;
-        } else {
-            std::cout << "### " << k << " is NOT in [1,48] ###\n";
+    int max = 0;
+    for (int i = 0; i < results.size(); ++i) {
+        if (results[i].count > 0) {
+            max++;
         }
     }
+        float k_input; // 改用 float 接收，這樣才能抓到使用者到底有沒有輸入小數點
+        int k = 0;     // 最終過關後要使用的整數 K 值
+
+        while (true) {
+            std::cout << "Input an integer to show top-K in [1," << max << "]: \n";
+            std::cin >> k_input;
+
+            // 一、檢查是否輸入了「非數字」（文字、純符號、文字混符號）導致 cin 壞掉
+            if (std::cin.fail()) {
+                std::cin.clear(); // 清除錯誤旗標
+                
+                string garbage;
+                std::cin >> garbage; // 吃掉緩衝區的髒資料
+
+                // 檢查這串髒資料裡面，是不是「含有任何英文字母」
+                bool hasLetter = false;
+                for (int i = 0; i < (int)garbage.length(); ++i) {
+                    if (isalpha(garbage[i])) {
+                        hasLetter = true;
+                        break; 
+                    }
+                }
+
+                // 如果「一個字母都沒有」，代表它是純符號（如 ###, ...），才印出錯誤訊息
+                if (!hasLetter) {
+                    std::cout << "### " << garbage << " is NOT in [1," << max << "] ###\n\n";
+                }
+                
+                continue; // 重新開始迴圈
+            }
+
+            // 二、檢查是否為負數
+            if (k_input < 0.0f) {
+                // 負數：依要求默默重新輸入，不印錯誤訊息
+                continue; 
+            }
+
+            // 三、檢查是否輸入了小數（例如 1.5）
+            // 如果比對發現轉成整數後數值不一樣，代表原本有小數點（例如 1.5 != 1）
+            if (k_input != (int)k_input) {
+                // 小數：不判定為正確，默默重新輸入
+                continue; 
+            }
+
+            // 四、確認是純整數後，將它轉回 int 並進行範圍判定
+            k = (int)k_input;
+
+            if (k >= 1 && k <= max) { // 這裡的 max 依據你的變數，48 的話就用 max
+                break; // 成功過關，跳出迴圈
+            } else {
+                // 超出範圍的正整數（例如 0 或 50）：印出錯誤訊息
+                std::cout << "### " << k << " is NOT in [1," << max << "] ###\n\n";
+            }
+        }
     int printedCount = 0;
     int lastCount = -1;
 
