@@ -5,6 +5,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iomanip>
+#include <chrono> // 任務四測量執行時間（毫秒）所需
 
 using namespace std;
 
@@ -59,6 +60,37 @@ class Graph {
     // 輔助靜態函式：用於 std::sort 排序主陣列，告訴他是比ID 且是由小到大
     static bool compareByStudentID(const HeadNode& a, const HeadNode& b) {
         return a.studentID < b.studentID;
+    }
+
+    // --- 新增私有輔助函式 (用於任務三與任務四) ---
+    
+    // 使用二分搜尋法在已排序的 headVector 中快速尋找學號對應的索引 index
+    int findStudentIndex(const vector<HeadNode>& headVector, const string& id) {
+        int left = 0;
+        int right = (int)headVector.size() - 1;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (headVector[mid].studentID == id) return mid;
+            if (headVector[mid].studentID < id) left = mid + 1;
+            else right = mid - 1;
+        }
+        return -1;
+    }
+
+    // 任務三指定：深度優先走訪 (DFS) 遞迴尋找滿足權重門檻的相異可達學號
+    void dfsInfluence(int curr, float threshold, const vector<HeadNode>& headVector, vector<bool>& visited, vector<string>& reachable) {
+        Node* arc = headVector[curr].firstArc;
+        while (arc != nullptr) {
+            if (arc->weight >= threshold) { // 有效邊判定
+                int neighbor = findStudentIndex(headVector, arc->getID);
+                if (neighbor != -1 && !visited[neighbor]) {
+                    visited[neighbor] = true;
+                    reachable.push_back(arc->getID); // 記錄相異的收訊者學號
+                    dfsInfluence(neighbor, threshold, headVector, visited, reachable); // 遞迴 DFS
+                }
+            }
+            arc = arc->next;
+        }
     }
 
  public:
@@ -244,6 +276,167 @@ class Graph {
     outFile.close();
     cout << "\n<<< There are " << (int)headVector.size() << " IDs in total. >>>\n\n";
   }
+
+    // =========================
+    // 任務三：影響力 influence
+    // =========================
+    void mission3(string fileNum, vector<HeadNode>& headVector) {
+        if (headVector.empty()) {
+            cout << "### There is no graph and choose 1 first. ###\n\n";
+            return;
+        }
+
+        float threshold;
+        while (true) {
+            std::cout << "\nInput a real number in [0.66,1.0]: \n";
+            std::cin >> threshold;
+
+            // 檢查是不是輸入了英文字母或符號導致 cin 壞掉
+            if (std::cin.fail()) {
+                std::cin.clear(); // 1. 回復 cin 的正常運作狀態
+                // 2. 跳過緩衝區內的所有錯誤字元，直到遇到換行符號 \n 為止
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+                continue; // 重新開始迴圈
+            }
+
+            // 如果是正常的數字，再判斷範圍是否正確
+            if (threshold >= 0.66f && threshold <= 1.0f) {
+                break;
+            }
+            std::cout << "### It is NOT in [0.66,1.0] ###\n";
+        }
+
+        struct InfResult {
+            string studentID;
+            int influence;
+            vector<string> reachable;
+        };
+
+        vector<InfResult> results;
+
+        for (int i = 0; i < (int)headVector.size(); ++i) {
+            vector<bool> visited(headVector.size(), false);
+            vector<string> reachable;
+
+            visited[i] = true;
+            dfsInfluence(i, threshold, headVector, visited, reachable);
+
+            if (!reachable.empty()) {
+                sort(reachable.begin(), reachable.end());
+                results.push_back({headVector[i].studentID, (int)reachable.size(), reachable});
+            }
+        }
+
+        sort(results.begin(), results.end(), [](const InfResult& a, const InfResult& b) {
+            if (a.influence != b.influence) return a.influence > b.influence;
+            return a.studentID < b.studentID;
+        });
+
+        string infName = "pairs" + fileNum + ".inf";
+        ofstream outFile(infName);
+
+        outFile << "<<< There are " << (int)results.size() << " IDs in total. >>>\n";
+        outFile << "<<< Threshold = " << threshold << " >>>\n";
+
+        for (int i = 0; i < (int)results.size(); ++i) {
+            outFile << "[" << setw(3) << right << i + 1 << "] "
+                    << results[i].studentID << "(" << results[i].influence << "): \n";
+
+            int countItem = 0;
+            for (int j = 0; j < (int)results[i].reachable.size(); ++j) {
+                if (countItem >= 12) {
+                    outFile << "\n";
+                    countItem = 0;
+                }
+                outFile << "\t(" << setw(2) << right << j + 1 << ") "
+                        << results[i].reachable[j];
+                countItem++;
+            }
+            outFile << "\n";
+        }
+
+        outFile.close();
+        cout << "<<< There are " << (int)results.size() << " IDs in total. >>>\n\n";
+
+    }  // --- 新增功能：任務四（以固定門檻找出前 K 名估計影響力並印於螢幕） ---
+  void mission4(const vector<HeadNode>& headVector) {
+    struct TopKResult {
+      string studentID;
+      int count;
+    };
+
+    vector<TopKResult> results(headVector.size());
+    float fixedThreshold = 0.66f;
+
+    // --- 測量執行時間開始 ---
+    auto startTime = chrono::high_resolution_clock::now();
+
+    for (int i = 0; i < (int)headVector.size(); ++i) {
+        results[i].studentID = headVector[i].studentID;
+        vector<bool> visited(headVector.size(), false);
+        vector<string> reachable;
+        visited[i] = true;
+        
+        // 走訪獲取估計影響力
+        dfsInfluence(i, fixedThreshold, headVector, visited, reachable);
+        results[i].count = (int)reachable.size();
+    }
+
+    auto endTime = chrono::high_resolution_clock::now();
+    // --- 測量執行時間結束 ---
+    auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
+
+    // 收集影響力為正值的索引
+    vector<int> idx;
+    for (int i = 0; i < (int)results.size(); ++i) {
+        if (results[i].count > 0) {
+            idx.push_back(i);
+        }
+    }
+
+    // 排序：估計影響力由大到小，若相同則學號由小到大
+    sort(idx.begin(), idx.end(), [&](int a, int b) {
+        if (results[a].count != results[b].count) {
+            return results[a].count > results[b].count;
+        }
+        return results[a].studentID < results[b].studentID;
+    });
+
+    // 輸出至螢幕
+    cout << "\n[Elapsed time] " << duration << " ms\n\n";
+
+    int k;
+    while (true) {
+        std::cout << "Input an integer to show top-K in [1,48]: \n";
+        std::cin >> k;
+        if (k > 0 && k <= 48) {
+            break;
+        } else if (k < 0) {
+            continue;
+        } else {
+            std::cout << "### " << k << " is NOT in [1,48] ###\n";
+        }
+    }
+    int printedCount = 0;
+    int lastCount = -1;
+
+    for (int i = 0; i < (int)idx.size(); ++i) {
+        int realIdx = idx[i];
+        
+        // 如果印出的數量已達 K，且目前這個人的分數跟上一位不一樣，就截止
+        // 這樣可以確保「數值相同太多若超過 K 筆則必須全部輸出」
+        if (printedCount >= k && results[realIdx].count != lastCount) {
+            break;
+        }
+
+        cout << "<" << printedCount + 1 << "> " 
+             << results[realIdx].studentID << ": " << results[realIdx].count << "\n";
+        
+        printedCount++;
+        lastCount = results[realIdx].count;
+    }
+    cout << "\n";
+  }
 };
 
 
@@ -261,8 +454,10 @@ int main() {
                      "\n* 0. QUIT                        *"
                      "\n* 1. Build adjacency lists       *"
                      "\n* 2. Compute connection counts   *"
+                     "\n* 3. Estimate influence values   *"
+                     "\n* 4. Find top-k influence values *"
                      "\n**********************************\n"
-                     "Input a choice(0, 1, 2): ";
+                     "Input a choice(0, 1, 2, 3, 4): ";      // 更新輸入範圍提示
         std::cin >> cmd;
         if (cmd == "0") {
             break;
@@ -282,6 +477,18 @@ int main() {
                 std::cout << "### There is no graph and choose 1 first. ###\n\n";
             } else {
               graph.mission2(fileNum, headVector);
+            }
+        } else if (cmd == "3") { // 新增任務三整合與防呆
+            if (headVector.empty()) {
+                std::cout << "### There is no graph and choose 1 first. ###\n\n";
+            } else {
+                graph.mission3(fileNum, headVector);
+            }
+        } else if (cmd == "4") { // 新增任務四整合與防呆
+            if (headVector.empty()) {
+                std::cout << "### There is no graph and choose 1 first. ###\n\n";
+            } else {
+                graph.mission4(headVector);
             }
         } else std::cout << "\nCommand does not exist!\n\n";
     }
