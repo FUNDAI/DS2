@@ -283,7 +283,7 @@ int main() {
     std::cout << "Mission 1: External merge sort \n";
     std::cout << "##################################\n\n";
     
-    // --- 錯誤檔名防呆與重新輸入迴圈 ---
+    // 檔名防呆與重新輸入迴圈
     while (true) {
       std::cout << "Input the file name: [0]Quit\n";
       std::cin >> fileNum;
@@ -296,29 +296,27 @@ int main() {
       std::ifstream testFile(inFileName, std::ios::binary);
 
       if (testFile.is_open()) {
-        testFile.close(); // 檔案存在，關閉測試用的串流
-        break;            // 跳出輸入迴圈，繼續往下執行任務
+        testFile.close(); 
+        break; // 檔案存在，跳出輸入迴圈，準備執行任務
       } else {
-        // 檔案不存在，印出你指定的錯誤格式，並繼續迴圈重新輸入
+        // 檔案不存在，印出錯誤格式並繼續迴圈重新輸入
         std::cout << "\n" << inFileName << " does not exist!!!\n\n";
       }
     }
 
-    if (fileNum == "0") {
-      break; // 若剛才是因為輸入 0 退出輸入迴圈，則直接結束整個程式
+    // 只有在輸入不是 0 的情況下，才去依序執行任務一與任務二
+    if (fileNum != "0") {
+      sorter.mission1(fileNum);
+      sorter.mission2(fileNum); // 直接在這裡呼叫你寫好的任務二
     }
-
-    // === 核心流程：找到檔案後一口氣不間斷連續執行 mission1 與 mission2 ===
-    sorter.mission1(fileNum);
-    sorter.mission2(fileNum);
     
-    // 任務執行完畢後詢問是否繼續
+    // 任務執行完畢（或輸入 0 放棄任務）後，詢問是否繼續
     std::string cont;
     std::cout << "\n[0]Quit or [Any other key]continue?\n";
     std::cin >> cont;
     
     if (cont == "0") {
-      break;
+      break; 
     }
     
     std::cout << "\n";
