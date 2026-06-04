@@ -16,6 +16,7 @@ class ExternalSorter {
  private:
   int maxBufferSize = 300;
 
+  // === 保持原樣：完全不更動原有 mergeTwoFiles ===
   void mergeTwoFiles(std::string file1, std::string file2, std::string outFile) {
     std::ifstream in1(file1, std::ios::binary);
     std::ifstream in2(file2, std::ios::binary);
@@ -75,6 +76,7 @@ class ExternalSorter {
   }
 
  public:
+  // === 保持原樣：完全不更動原有 mission1 ===
   void mission1(std::string fileNum) {
     std::string inFileName = "pairs" + fileNum + ".bin";
     std::string outFileName = "order" + fileNum + ".bin";
@@ -189,6 +191,80 @@ class ExternalSorter {
     std::cout << "External Sort = " << externalTimeMs << " ms\n";
     std::cout << "Total Execution Time = " << totalTimeMs << " ms\n";
   }
+
+  // === 任務二：建立主索引函數 （計算結果調整為與您的 FILE* 版本一致的筆數 offset） ===
+  void mission2(std::string fileNum) {
+    std::string outFileName = "order" + fileNum + ".bin";
+    std::ifstream inFile(outFileName, std::ios::binary);
+
+    if (!inFile.is_open()) {
+      std::cout << "\n### " << outFileName << " does not exist! ###\n";
+      return;
+    }
+
+    std::cout << "\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+    std::cout << "Mission 2: Build the primary index \n";
+    std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n";
+    std::cout << "<Primary index>: (key, offset)\n";
+
+    struct IndexEntry {
+      float key;
+      int offset; // 改回 int 型態，對應筆數編號
+    };
+
+    std::vector<IndexEntry> primaryIndex;
+    std::vector<Record> chunkBuffer;
+    Record tempRecord;
+
+    int currentOffset = 0; // 筆數累計序號計算器，完全對應原 FILE* 版本的計數邏輯
+    float lastWeight = -1.0f;
+
+    while (true) {
+      // 分批讀取，每次最多 300 筆（符合不一次載入記憶體之規範）
+      if (inFile.read((char*)&tempRecord, sizeof(Record))) {
+        chunkBuffer.push_back(tempRecord);
+
+        if (chunkBuffer.size() == maxBufferSize) {
+          for (size_t i = 0; i < chunkBuffer.size(); ++i) {
+            // 與您的原 FILE* 計算式同：第一個元素，或是當 weight 改變時
+            if (currentOffset == 0 || chunkBuffer[i].weight != lastWeight) {
+              IndexEntry entry;
+              entry.key = chunkBuffer[i].weight;
+              entry.offset = currentOffset;
+              primaryIndex.push_back(entry);
+
+              lastWeight = chunkBuffer[i].weight;
+            }
+            currentOffset++;
+          }
+          chunkBuffer.clear();
+        }
+      } else {
+        // 處理最後殘餘不滿 300 筆的資料
+        if (!chunkBuffer.empty()) {
+          for (size_t i = 0; i < chunkBuffer.size(); ++i) {
+            if (currentOffset == 0 || chunkBuffer[i].weight != lastWeight) {
+              IndexEntry entry;
+              entry.key = chunkBuffer[i].weight;
+              entry.offset = currentOffset;
+              primaryIndex.push_back(entry);
+
+              lastWeight = chunkBuffer[i].weight;
+            }
+            currentOffset++;
+          }
+          chunkBuffer.clear();
+        }
+        break;
+      }
+    }
+    inFile.close();
+
+    // 依序輸出主索引內容（完全複製原 printf 的輸出樣式 %zu、%g、%d）
+    for (size_t i = 0; i < primaryIndex.size(); ++i) {
+      printf("[%zu] (%g, %d)\n", i + 1, primaryIndex[i].key, primaryIndex[i].offset);
+    }
+  }
 };
 
 int main() {
@@ -207,7 +283,7 @@ int main() {
     std::cout << "Mission 1: External merge sort \n";
     std::cout << "##################################\n\n";
     
-    // --- 新增：錯誤檔名防呆與重新輸入迴圈 ---
+    // --- 錯誤檔名防呆與重新輸入迴圈 ---
     while (true) {
       std::cout << "Input the file name: [0]Quit\n";
       std::cin >> fileNum;
@@ -232,8 +308,9 @@ int main() {
       break; // 若剛才是因為輸入 0 退出輸入迴圈，則直接結束整個程式
     }
 
-    // 確定檔案存在後，將檔名交給 mission1 執行
+    // === 核心流程：找到檔案後一口氣不間斷連續執行 mission1 與 mission2 ===
     sorter.mission1(fileNum);
+    sorter.mission2(fileNum);
     
     // 任務執行完畢後詢問是否繼續
     std::string cont;
