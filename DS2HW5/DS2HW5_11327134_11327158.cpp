@@ -238,7 +238,6 @@ public:
             return;
         }
 
-        // 算出排序檔總資料筆數
         inFile.seekg(0, std::ios::end);
         int totalRecords = inFile.tellg() / sizeof(Record);
         inFile.seekg(0, std::ios::beg);
@@ -246,22 +245,62 @@ public:
         std::cout << "\n##################################\n";
         std::cout << "* 3: Range search to build index *\n";
         std::cout << "##################################\n\n";
+        std::cout << "Input two values in (0,1] for range search.\n\n";
 
         float lowerBound, upperBound;
-        std::cout << "Input two values in (0,1] for range search.\n\n";
-        std::cout << "Input a floating number in [0.01, 1.00]: ";
-        std::cin >> lowerBound;
-        std::cout << "Input a floating number in [0.01, 1.00]: ";
-        std::cin >> upperBound;
+
+        // 【精準分流控制】：讀取第一個數字
+        while (true) {
+            std::cout << "Input a floating number in [0.01, 1.00]: ";
+            std::cin >> lowerBound;
+
+            if (std::cin.fail()) {
+                // 進到這裡代表輸入了英文（ab）或符號（**），默默清除，不輸出任何錯誤訊息
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "\n"; // 單純換行美化，直接進入下一次重新輸入
+                continue;
+            }
+
+            // 如果是正常數字，再檢查範疇
+            if (lowerBound >= 0.01f && lowerBound <= 1.00f) {
+                break; // 正確範圍，跳出迴圈
+            } else {
+                // 是數字但超出範圍，這時才輸出錯誤訊息
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "\n### It is NOT in [0.01,1.00] ###\n\n";
+            }
+        }
+
+        // 【精準分流控制】：讀取第二個數字
+        while (true) {
+            std::cout << "Input a floating number in [0.01, 1.00]: ";
+            std::cin >> upperBound;
+
+            if (std::cin.fail()) {
+                // 輸入英文或符號，默默清除，不輸出錯誤訊息
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "\n";
+                continue;
+            }
+
+            if (upperBound >= 0.01f && upperBound <= 1.00f) {
+                break;
+            } else {
+                // 是數字但超出範圍，輸出錯誤訊息
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "\n### It is NOT in [0.01,1.00] ###\n\n";
+            }
+        }
         std::cout << "\n";
 
         if (lowerBound > upperBound) {
             std::swap(lowerBound, upperBound);
         }
 
-        secondaryIndex.clear(); // 每次範圍檢索皆重新建立
+        secondaryIndex.clear();
 
-        // 使用主索引分段加速定位 (大到小排序)
         int startOffset = totalRecords;
         for (size_t i = 0; i < primaryIndex.size(); ++i) {
             if (primaryIndex[i].key <= upperBound) {
@@ -281,7 +320,6 @@ public:
         int totalInBounds = endOffset - startOffset;
         if (totalInBounds < 0) totalInBounds = 0;
 
-        // 緩衝區分批讀入指定的這段區間
         if (startOffset < endOffset) {
             inFile.seekg(startOffset * sizeof(Record), std::ios::beg);
             int recordsToRead = totalInBounds;
@@ -364,7 +402,6 @@ int main() {
     int bufSize = 300;
 
     while (true) {
-        // 1. 印出主選單
         std::cout << "* Data Structures and Algorithms *\n";
         std::cout << "**********************************\n";
         std::cout << "* 1. External merge sort on file *\n";
@@ -374,7 +411,6 @@ int main() {
         std::cout << "**********************************\n";
         std::cout << "*** The buffer size is " << bufSize << "\n";
 
-        // 2. 詢問 Buffer Size
         while (true) {
             std::cout << "Input a new buffer size in [300, 60000]: ";
             if (std::cin >> bufSize) {
@@ -386,16 +422,18 @@ int main() {
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             }
-            std::cout << "Invalid size! Please input a value between 300 and 60000.\n";
+            if (bufSize > 0) {
+                std::cout << "### It is NOT in [300,60000] ###\n\n";
+
+            }
         }
 
-        // 3. 詢問檔名
         while (true) {
             std::cout << "\nInput the file name: [0]Quit\n";
             std::cin >> fileNum;
 
             if (fileNum == "0") {
-                return 0; // 直接退出程式
+                return 0;
             }
 
             std::string inFileName = "pairs" + fileNum + ".bin";
@@ -409,41 +447,33 @@ int main() {
             }
         }
 
-        // 4. 先執行任務 1 和 任務 2 (同一個檔案與Buffer下只需跑一次)
         sorter.mission1(fileNum);
         sorter.mission2(fileNum);
 
-        // 【核心修改】：內層無窮迴圈，專門負責重複執行任務 3、4
         while (true) {
             sorter.mission3(fileNum);
             sorter.mission4(fileNum);
 
-            // 5. 雙階退出詢問
             std::string cont3 = "0";
             std::cout << "\n[3]Quit or [Any other key]continue?\n";
             std::cin >> cont3;
 
             if (cont3 != "3") {
-                // 如果輸入的「不是 3」（例如 33 或任何其他鍵），利用 continue 直接跳過後方判斷，
-                // 回到內層迴圈開頭，重新執行任務 3！
                 std::cout << "\nContinuing range search...\n";
                 continue;
             }
 
-            // 如果輸入的是 3，才進到這裡詢問是否要完全離開程式 [0]
             std::string cont0 = "0";
             std::cout << "\n[0]Quit or [Any other key]continue?\n";
             std::cin >> cont0;
 
             if (cont0 == "0") {
-                return 0; // 直接結束整個程式
+                return 0;
             } else {
-                // 如果在 [0] 選了 continue，代表想更換「別的測試檔案」或「Buffer Size」
-                break; // 跳出內層迴圈，回到外層大選單
+                break;
             }
         }
 
-        // 清除殘留換行，確保回到最上方選單時輸入正常
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         std::cout << "\n";
     }
