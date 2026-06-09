@@ -249,36 +249,30 @@ public:
 
         float lowerBound, upperBound;
 
-        // 【精準分流控制】：讀取第一個數字
         while (true) {
             std::cout << "Input a floating number in [0.01, 1.00]: ";
             std::cin >> lowerBound;
 
             if (std::cin.fail()) {
-                // 進到這裡代表輸入了英文（ab）或符號（**），默默清除，不輸出任何錯誤訊息
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                std::cout << "\n"; // 單純換行美化，直接進入下一次重新輸入
+                std::cout << "\n";
                 continue;
             }
 
-            // 如果是正常數字，再檢查範疇
             if (lowerBound >= 0.01f && lowerBound <= 1.00f) {
-                break; // 正確範圍，跳出迴圈
+                break;
             } else {
-                // 是數字但超出範圍，這時才輸出錯誤訊息
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "\n### It is NOT in [0.01,1.00] ###\n\n";
             }
         }
 
-        // 【精準分流控制】：讀取第二個數字
         while (true) {
             std::cout << "Input a floating number in [0.01, 1.00]: ";
             std::cin >> upperBound;
 
             if (std::cin.fail()) {
-                // 輸入英文或符號，默默清除，不輸出錯誤訊息
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "\n";
@@ -288,7 +282,6 @@ public:
             if (upperBound >= 0.01f && upperBound <= 1.00f) {
                 break;
             } else {
-                // 是數字但超出範圍，輸出錯誤訊息
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "\n### It is NOT in [0.01,1.00] ###\n\n";
             }
@@ -402,6 +395,7 @@ int main() {
     int bufSize = 300;
 
     while (true) {
+        // 1. 印出主選單
         std::cout << "* Data Structures and Algorithms *\n";
         std::cout << "**********************************\n";
         std::cout << "* 1. External merge sort on file *\n";
@@ -411,29 +405,46 @@ int main() {
         std::cout << "**********************************\n";
         std::cout << "*** The buffer size is " << bufSize << "\n";
 
+        // 2. 詢問 Buffer Size 與精準防呆
         while (true) {
             std::cout << "Input a new buffer size in [300, 60000]: ";
-            if (std::cin >> bufSize) {
-                if (bufSize >= 300 && bufSize <= 60000) {
-                    sorter.setBufferSize(bufSize);
-                    break;
-                }
-            } else {
+            std::cin >> bufSize;
+
+            if (std::cin.fail()) {
+                // 輸入英文或符號，默默清除不報錯
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "\n";
+                continue;
             }
-            if (bufSize > 0) {
-                std::cout << "### It is NOT in [300,60000] ###\n\n";
 
+            if (bufSize >= 300 && bufSize <= 60000) {
+                sorter.setBufferSize(bufSize);
+                break;
+            } else {
+                // 純粹數字範疇錯誤才報錯
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "### It is NOT in [300,60000] ###\n\n";
             }
         }
 
+        // 3. 詢問檔名與雙階退出整合
         while (true) {
             std::cout << "\nInput the file name: [0]Quit\n";
             std::cin >> fileNum;
 
             if (fileNum == "0") {
-                return 0;
+                // 完美配合預期畫面：詢問是否真的退出
+                std::string cont0 = "0";
+                std::cout << "\n[0]Quit or [Any other key]continue?\n";
+                std::cin >> cont0;
+
+                if (cont0 == "0") {
+                    std::cout << "程式已退出\n";
+                    return 0; // 真正結束程式
+                } else {
+                    continue; // 繼續留在輸入檔名的迴圈中
+                }
             }
 
             std::string inFileName = "pairs" + fileNum + ".bin";
@@ -447,9 +458,11 @@ int main() {
             }
         }
 
+        // 4. 執行排序與主索引建立
         sorter.mission1(fileNum);
         sorter.mission2(fileNum);
 
+        // 內層任務 3、4 的循環
         while (true) {
             sorter.mission3(fileNum);
             sorter.mission4(fileNum);
@@ -468,9 +481,10 @@ int main() {
             std::cin >> cont0;
 
             if (cont0 == "0") {
+                std::cout << "程式已退出\n";
                 return 0;
             } else {
-                break;
+                break; // 跳出內層，回到最外層選單
             }
         }
 
